@@ -45,22 +45,22 @@ if len(sys.argv) > 3:
             if(what == "l"):
                 msg = "latest|"+email
             elif(what == "s"):
-                msg = input("Enter the three digit symbol for the stock:\t")
+                msg = input("Enter the digit symbol for the stock:\t")
                 msg = "specific|"+email+"|"+msg.upper()
             elif(what == 'o'):
                 flag = False
                 continue
             elif(what == "b"):
-                msg = input("Enter the three digit symbol for the stock:\t")
+                msg = input("Enter the digit symbol for the stock:\t")
                 msg = "basic|"+email+"|"+msg.upper()
             elif(what == "f"):
-                msg = input("Enter the three digit symbol for the stock:\t")
+                msg = input("Enter the digit symbol for the stock:\t")
                 msg = "financial|"+email+"|"+msg.upper()
             elif(what == "r"):
-                msg = input("Enter the three digit symbol for the stock:\t")
+                msg = input("Enter the digit symbol for the stock:\t")
                 msg = "ratios|"+email+"|"+msg.upper()
             elif(what == "sy"):
-                msg = input("Enter the three digit symbol for the stock:\t")
+                msg = input("Enter the digit symbol for the stock:\t")
                 msg = "symbol|"+email+"|"+msg.upper()
             else:
                 print("Invalid command try again")

@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-import socket, threading, struct, requests
+import socket, threading, struct, requests, re
 
 l = threading.RLock()
 users = dict()
@@ -43,28 +43,38 @@ def financial(data):
     if page.find("div",{"id":"titleKonf2011"}):
         msg = "The company doesn't exist!"
     else:
-        msg = "\nFinancial data(2020-2022) in denars:\n"
         table = page.find("tbody")
-        for row in table.find_all("tr")[0:]:
-            pom = 0
-            msg += "\n"
-            for colum in row:
-                text = str(colum.text).strip()
-                if len(text) == 0:
-                    continue
-                elif pom == 0:
+        if (re.compile(r'^RMDEN',re.IGNORECASE).match(data[2])):
+            msg = "Denationalization bonds:\n"
+            for row in table.find_all("tr")[0:]:
+                msg += "\n"
+                for colum in row:
+                    text = str(colum.text).strip()
+                    if len(text) == 0:
+                        continue
                     msg += text + "\n"
-                    pom += 1
-                elif pom == 1:
-                    msg += "In 2022: " + text +"\n"
-                    pom += 1
-                elif pom == 2:
-                    msg += "In 2021: " + text + "\n"
-                    pom += 1
-                elif pom == 3:
-                    msg += "In 2020: "+  text + "\n"
-                    pom = 0
-                        
+        else:
+            msg = "\nFinancial data(2020-2022) in denars:\n"
+            for row in table.find_all("tr")[0:]:
+                pom = 0
+                msg += "\n"
+                for colum in row:
+                    text = str(colum.text).strip()
+                    if len(text) == 0:
+                        continue
+                    elif pom == 0:
+                        msg += text + "\n"
+                        pom += 1
+                    elif pom == 1:
+                        msg += "In 2022: " + text +"\n"
+                        pom += 1
+                    elif pom == 2:
+                        msg += "In 2021: " + text + "\n"
+                        pom += 1
+                    elif pom == 3:
+                        msg += "In 2020: "+  text + "\n"
+                        pom = 0      
+    msg += '\n'
     return msg
             
 def ratios(data):
@@ -75,26 +85,30 @@ def ratios(data):
         msg = "The company doesn't exist!"
     else:
         msg = "\nFinancial ratios(2020-2022) in denars:\n"
-        table = page.find_all("tbody")[1]
-        for row in table.find_all("tr")[0:]:
-            pom = 0
-            msg += "\n"
-            for colum in row:
-                text = str(colum.text).strip()
-                if len(text) == 0:
-                    continue
-                elif pom == 0:
-                    msg += text + "\n"
-                    pom += 1
-                elif pom == 1:
-                    msg += "In 2022: " + text +"\n"
-                    pom += 1
-                elif pom == 2:
-                    msg += "In 2021: " + text + "\n"
-                    pom += 1
-                elif pom == 3:
-                    msg += "In 2020: "+  text + "\n"
-                    pom = 0
+        if (re.compile(r'^RMDEN',re.IGNORECASE).match(data[2])):
+            msg = "Government Bonds:\n"
+            msg += "Starting from 08.01.2019, the continuous government bonds are listed on the Official Market of the Stock Exchange.\n"
+        else:
+            table = page.find_all("tbody")[1]
+            for row in table.find_all("tr")[0:]:
+                pom = 0
+                msg += "\n"
+                for colum in row:
+                    text = str(colum.text).strip()
+                    if len(text) == 0:
+                        continue
+                    elif pom == 0:
+                        msg += text + "\n"
+                        pom += 1
+                    elif pom == 1:
+                        msg += "In 2022: " + text +"\n"
+                        pom += 1
+                    elif pom == 2:
+                        msg += "In 2021: " + text + "\n"
+                        pom += 1
+                    elif pom == 3:
+                        msg += "In 2020: "+  text + "\n"
+                        pom = 0
     return msg            
 
 def symbol(data):
@@ -175,9 +189,11 @@ def serverClient(s):
         elif data[0] == 'specific':
             msg = ""
             msg += basic(data)
-            msg += financial(data)
-            msg += ratios(data)
-            msg += symbol(data)
+            if(msg != "The company doesn't exist!"):
+                msg += financial(data)
+                msg += ratios(data)
+                msg += symbol(data)
+            
             msg += "\nLink to the information: https://www.mse.mk/en/"+"\n"
             length = len(msg)
             fullmsg = struct.pack("!i", length) + msg.encode("utf-8")
