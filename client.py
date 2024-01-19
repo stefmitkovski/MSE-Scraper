@@ -41,7 +41,7 @@ if len(sys.argv) > 3:
     try:
         flag = True
         while flag:
-            what = input('What is next? \t\no - Logout\t\nl - Get the latest traded stocks \t\ns - Get a specific stock(all the options bellow combined into one)\t\nb - Get the issuer\'s data of a specific stock\t\nf - Get the financial data of a specific stock\t\nr - Get the financial ratios of a specific stock\t\nsy- Get the symbol data of a specific stock\n\n') 
+            what = input('What is next? \t\no - Logout\t\nl - Get the latest traded stocks \t\ns - Get a specific stock(all the options bellow combined into one)\t\nb - Get the issuer\'s data of a specific stock\t\nf - Get the financial data of a specific stock\t\nr - Get the financial ratios of a specific stock\t\nsy- Get the symbol data of a specific stock\t\nsub - Subscribe/Unsubscribe to the daily stock report\n\n') 
             if(what == "l"):
                 msg = "latest|"+email
             elif(what == "s"):
@@ -62,6 +62,8 @@ if len(sys.argv) > 3:
             elif(what == "sy"):
                 msg = input("Enter the digit symbol for the stock:\t")
                 msg = "symbol|"+email+"|"+msg.upper()
+            elif(what == "sub"):
+                msg = "subscribe|"+email
             else:
                 print("Invalid command try again")
                 continue

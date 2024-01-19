@@ -1,8 +1,11 @@
 from bs4 import BeautifulSoup
-import socket, threading, struct, requests, re
+import socket, threading, struct, requests, re, smtplib, time, schedule
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 l = threading.RLock()
 users = dict()
+subscribed = []
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -17,6 +20,58 @@ def recv_all(sock, length):
 		more = sock.recv(length - len(data))
 		data += more
 	return data
+
+def send_email():
+    sender_email = ""
+    sender_password = ""
+    if(sender_email == '' or sender_password == ''):
+        print("Can't send the emails because there sender email and password fields are empty")
+    else:
+        try:
+            server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+            server.login(sender_email, sender_password)
+            content = latest()
+            print("Preparing to send a daily email.\n")
+            if subscribed:
+                for receiver_email in subscribed:
+                    try:
+                        print("Sending email to " + receiver_email + " ... ")
+                        msg = MIMEMultipart('alternative')
+                        msg['Subject'] = "Daily Stock Report"
+                        msg['From'] = sender_email
+                        msg['To'] = receiver_email
+                        html = f"""
+                        <html>
+                        <body>
+                        <p>{content}</p>
+                        </body>
+                        </html>
+                        """
+                        msg.attach(MIMEText(html, 'html'))
+                        print("Done.\n")
+                        server.sendmail(sender_email, receiver_email, msg.as_string())
+                    except Exception as e:
+                        print(f"Failed to send email to {receiver_email}: {e}/n")
+        except Exception as e:
+            print(f"Failed to connect to the SMTP server: {e}")
+        finally:
+            server.quit()
+
+def latest():
+    url = "https://www.mse.mk/en/"
+    msg = "Last Updated on: "
+    result = requests.get(url)
+    page = BeautifulSoup(result.text,"html.parser")
+    sidebar = page.find("ul",{"class":"newsticker"})
+    index = page.find("div",{"class": "index-title"})
+    items = index.find_all("span")[3:]
+    for item in items:
+        msg += str(item.text).strip() + "\n"
+    items = sidebar.find_all("li")
+    for item in items:  
+        msg += str(item.span.text).strip() + "\n"
+    msg += "\nLink to the information: "+url+"\n"
+    return msg
 
 def basic(data):
     url = "https://www.mse.mk/en/symbol/" + str(data[2])
@@ -133,13 +188,10 @@ def serverClient(s):
         # Loggin and Register
         if data[0] == 'register':
             email = data[1]
-            # l.acquire()
-            #with l:
             if email in users:
                 msg = "taken"
                 length = len(msg)
                 msg = (struct.pack("!i", length)) + msg.encode("utf-8")
-                print(msg)
                 s.sendall(msg)
             else:
                 users[email] = Korisnik(email,data[2],s)
@@ -147,7 +199,6 @@ def serverClient(s):
                 length = len(msg)
                 msg = (struct.pack("!i", length)) + msg.encode("utf-8")
                 s.sendall(msg)
-            # l.release()
 
 
         elif data[0] == 'login':
@@ -167,20 +218,8 @@ def serverClient(s):
         # Scrapping commands
         # Get a list of the last traded shares
         elif data[0] == 'latest':
-            url = "https://www.mse.mk/en/"
-            msg = "Last Updated on: "
-            result = requests.get(url)
-            page = BeautifulSoup(result.text,"html.parser")
-            sidebar = page.find("ul",{"class":"newsticker"})
-            index = page.find("div",{"class": "index-title"})
-            items = index.find_all("span")[3:]
-            for item in items:
-                msg += str(item.text).strip() + "\n"
-            items = sidebar.find_all("li")
-            for item in items:  
-                msg += str(item.span.text).strip() + "\n"
-            msg += "\nLink to the information: "+url+"\n"
-            
+            msg = ""
+            msg = latest()
             length = len(msg)
             fullmsg = struct.pack("!i", length) + msg.encode("utf-8")
             users[data[1]].address.sendall(fullmsg)
@@ -231,7 +270,18 @@ def serverClient(s):
             fullmsg = struct.pack("!i", length) + msg.encode("utf-8")
             users[data[1]].address.sendall(fullmsg)
 
-        # Email Subscription - TODO
+        # Email Subscription
+        elif data[0] == 'subscribe':
+            if data[1] not in subscribed:
+                subscribed.append(data[1])
+                msg = "Successfully subscribed !"
+            else:
+                msg = "Successfully un-subscribed !"
+                subscribed.remove(data[1])
+            # print(subscribed)
+            length = len(msg)
+            fullmsg = struct.pack("!i", length) + msg.encode("utf-8")
+            users[data[1]].address.sendall(fullmsg)
 
         else:
             msg = "Error wrong command"
@@ -240,9 +290,20 @@ def serverClient(s):
             s.sendall(fullmsg)
 
 
+def serveEmail():
+    setTime = "14:02"
+    schedule.every().monday.at(setTime).do(send_email)
+    schedule.every().tuesday.at(setTime).do(send_email)
+    schedule.every().wednesday.at(setTime).do(send_email)
+    schedule.every().thursday.at(setTime).do(send_email)
+    schedule.every().friday.at(setTime).do(send_email)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
 s.bind(('localhost', 1060))
 s.listen(1)
+threading.Thread(target=serveEmail,args=()).start()
 while True:
     sc, sockname = s.accept()
     print(sockname)
