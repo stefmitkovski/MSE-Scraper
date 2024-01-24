@@ -23,7 +23,7 @@ def recv_all(sock, length):
 
 def send_email():
     sender_email = ""
-    sender_password = ""
+    sender_password = "" # https://support.google.com/accounts/answer/185833?hl=en
     if(sender_email == '' or sender_password == ''):
         print("Can't send the emails because there sender email and password fields are empty")
     else:

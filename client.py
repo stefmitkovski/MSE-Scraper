@@ -1,4 +1,4 @@
-import sys, socket, threading, struct
+import sys, socket, struct
 
 def recv_all(sock, length):
     data = b''
@@ -80,4 +80,4 @@ if len(sys.argv) > 3:
         print("Exiting the program")
         sys.exit(0)
 else:
-    print("Usage: " + sys.argv[0] + " email password type\n Type can be l(loggin) or r(register)")
+    print("Usage: " + sys.argv[0] + " email password type\nType can be l(loggin) or r(register)")
